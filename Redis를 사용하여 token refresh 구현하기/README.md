@@ -1,6 +1,6 @@
 ## Redis를 사용하여 token refresh 구현하기
 
-이 글은 팀 Ludo의 `휴`가 작성했습니다.
+> 이 글은 팀 Ludo의 `휴`가 작성했습니다.
 
 ### JWT를 사용한 이유
 세션 기반 인정 방식은 사용자의 로그인 정보를 서버 측에서 관리하기 때문에, 서버에 부하가 발생할 수 있습니다. 
@@ -136,7 +136,7 @@ public class WebUtils {
     - 별도의 API로 관리하는 방법을 고민했지만, 사용자 경험과 개발 생산성 관점에서 득보다 실이 많은 방법으로 판단했습니다.
     - access 만료 시간인 30분 이내에 호출시 지속적으로 만료기간을 연장합니다.
     - refresh 만료 시간인 7일 초과시 로그아웃 처리 됩니다.
-    - accessToken / UserAgent / ClientIp 검증을 진행하며 다른 정보로 접근한 경우 로그아웃 처리 됩니다.
+    - accessToken / UserAgent / ClientIp 검증을 진행하며 다른 정보로 접근한 경우 쿠키를 제거하여 로그아웃 처리 됩니다.
 
 ```java
 @Override
@@ -389,3 +389,21 @@ Redis의 기본 포트는 6379 입니다. 6379 포트를 사용중인지 확인�
 
 <img width="636" alt="스크린샷 2024-04-23 오전 3 11 38" src="https://github.com/Ludo-SMP/ludo-backend_wiki/assets/83931353/0f92e44c-98d1-44e3-ae14-c722ba2d71c0">
 <br>
+
+---
+
+### 저장 형식
+
+![image](https://github.com/Ludo-SMP/ludo-backend_wiki/assets/83931353/5e2bd830-69e1-4987-a58d-421d8c69c402)
+<br>
+<br>
+
+### RDB vs Redis 성능 차이 비교 테스트
+사용자 10,000명을 기준으로 모든 사용자가 한 번씩 갱신 요쳥을 진행했을 때 비슷한 성능을 내지만, 1명의 사용자가 10,000번 갱신 요청힌 경우 Cache-hit로 약 80%의 성능 향상을 확인할 수 있습니다.
+
+짧은 시간동안 여러번 발생할 수 있는 리프레시 요청 특성상 Redis도입으로 큰 이점을 얻게 되었습니다.
+
+![image](https://github.com/Ludo-SMP/ludo-backend_wiki/assets/83931353/4a81cd32-ac69-4bb3-8c7d-dc25ffe7d748)
+<br>
+
+
