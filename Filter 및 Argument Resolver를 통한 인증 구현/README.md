@@ -33,17 +33,17 @@ Static Resource Serving의 경우, Spring Context를 거치기 전에 Servlet Co
 
 Spring은 Java WAS 스펙에 해당하는 Servlet의 구현체인 Tomcat을 디폴트로 사용하며, Tomcat은 내부적으로 Java NIO를 사용합니다.
 
-Java NIO는 효율적인 리소스 사용을 위해 각 Platform에서 지원하는 Native IO Multiplexor를 사용하는데, 
+Java NIO는 효율적인 리소스 사용을 위해 각 Platform에서 지원하는 Native IO Multiplexer를 사용하는데, 
 
-대부분의 서버는 Linux에서 구동되기 때문에, Linux에서는 IO Multiplexor로 epoll이 사용됩니다.
+대부분의 서버는 Linux에서 구동되기 때문에, Linux에서는 IO Multiplexer로 epoll이 사용됩니다.
 
-IO Multiplexor가 없다면 클라이언트로부터 들어오는 요청을 accept할 때까지 블로킹 되는 방식으로 작동하기 때문에 다수의 쓰레드가 비효율적인 대기 과정을 거치기 때문에 IO Multiplexor로 준비된 쓰레드에 대해서만 비동기적으로 epoll이 준비된 소켓에 대한 파일 디스크립터를 알려줘서 완전히 준비가 된 요청에 대해서만 쓰레드풀로부터 쓰레드를 받아서 request를 매핑할 수 있습니다.
+IO Multiplexer가 없다면 클라이언트로부터 들어오는 요청을 accept할 때까지 블로킹 되는 방식으로 작동하기 때문에 다수의 쓰레드가 비효율적인 대기 과정을 거치기 때문에 IO Multiplexer로 준비된 쓰레드에 대해서만 비동기적으로 epoll이 준비된 소켓에 대한 파일 디스크립터를 알려줘서 완전히 준비가 된 요청에 대해서만 쓰레드풀로부터 쓰레드를 받아서 request를 매핑할 수 있습니다.
 
 그래서 Tomcat의 경우는 클라이언트로부터 들어온 요청에 대해 로드 밸런싱 및 가용 가능한 쓰레드로 매핑을 해주는데,
 
-Connector(Coyote) -> Selector -> epoll(linux native IO Multiplexor) 식으로 작동하는 것으로 보입니다.
+Connector(Coyote) -> Selector -> epoll(linux native IO Multiplexer) 식으로 작동하는 것으로 보입니다.
 
-epoll 이전에 사용되던 IO Multiplexor가 select여서 Selector라고 이름을 지었는데 성능이 구려서 Linux에서 내부적으로는 epoll이 사용됩니다.
+epoll 이전에 사용되던 IO Multiplexer가 select여서 Selector라고 이름을 지었는데 성능이 구려서 Linux에서 내부적으로는 epoll이 사용됩니다.
 
 요청과 쓰레드 매핑이 완료되면 Servlet Engine이자 Container인 Catalina로 이관되어 요청을 처리하기 시작하며,
 
@@ -121,22 +121,54 @@ if (authToken.isEmpty()) {
 
 그 때는 바로 다음 줄에서 예외를 던져서 요청을 종료합니다.
 
+JWT를 사용한 인증은 Stateless 방식이라고들 합니다.
+
+그 말은 즉슨 서버에 State를 저장하지 않는다는 의미입니다.
+
+TCP는 연결된 각 Socket에 대한 source, destination의 IP/PORT를 저장합니다.
+
+서버에 Socket에 대한 State를 커널에 저장하기에 TCP가 Stateful이고,
+
+그 윗 계층에서 작동하는 HTTP는 각 요청에 대한 Application 계층 고유의 상태를 저장하지 않기 때문에 기본적으로 Stateless입니다.
+
+그래서 HashMap 등으로 이루어진 Session에 요청을 보낸 사용자에 대한 정보를 저장해야 하는데, JWT는 Token을 decode하면 그 안에 정보가 저장되어 있기 때문에
+
+서버를 Stateful하게 만들 필요가 없습니다.
+
+즉, 서버의 메모리를 절약할 수 있으며 스케일아웃에 보다 적합한 방식입니다. 
+
+다음 코드에서 JWT를 decode 및 verify하여 검증이 실패하면 오류, 성공하면 token에 들어 있는 정보를 꺼내옵니다.
+
+Claims가 바로 그 정보입니다.
+
+Claims는 라이브러리에 의해 일반화 된 객체이므로, 각 서버에서 사용하는 데이터 구조에 맞게 이를 다시 변환해야 합니다.
+
+변환한 데이터 타입이 AuthUserPayload입니다.
+
+이 안에 들어있는 중요한 정보는 사용자의 id 하나입니다.
+
+JWT는 decode만 해도 내부에 들어있는 데이터를 모두 볼 수 있습니다.
+
+이 JWT가 서버에서 발급한 것이 맞는지 검증하는 단계인, 'verify'만 서버에서 가능할 뿐입니다.
+
+그래서 JWT 내에 민감한 정보를 넣으면 안되기 때문에 최소한의 정보를 넣었습니다.
+
+사용자 id만 있어도 요청을 보낸 클라이언트를 구분할 수 있기 때문에 지금으로서는 충분합니다.
+
 ```java
 try {
 	Claims claims = jwtTokenProvider.verifyAuthTokenOrThrow(authToken.get());
 	final AuthUserPayload payload = AuthUserPayload.from(claims);
+
 	// 사용자 agent / ip 검증
 	userDetailsService.verifyUserDetails(payload.getId(), request);
 	request.setAttribute(AUTH_USER_PAYLOAD, payload);
-	// 토큰 갱신
-	accessTokenRefresh(payload.getId(), response);
-	// NotFoundException - 만료된 사용자 정보 검증 추가
-	// 만료되거나 잘못된 토큰일 경우 예외 response 를 반환한다.
-				cookieProvider.clearAuthCookie(response);
-				jwtExceptionHandler(response, HttpStatus.UNAUTHORIZED, e.getMessage());
-				return;
-			}
+}
 ```
+
+token refresh 및 ip 검증은 제가 작성하지 않아서 완전히 파악한 상태가 아니기도 하고, 현재 설명의 흐름에 복잡도를 더하기 때문에 생략하겠습니다.
+
+그 밑에 줄인 `request.setAttribute(AUTH_USER_PAYLOAD, payload);`를 봐주시면 됩니다.
 
 
 
