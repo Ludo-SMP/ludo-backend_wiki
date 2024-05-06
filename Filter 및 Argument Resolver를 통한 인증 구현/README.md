@@ -1,3 +1,159 @@
+
+# Authentication Filter
+
+## Filter vs Interceptor
+
+Spring에서 인증/인가를 처리하기 적절한 위치는 Servlet Filter/Spring Interceptor가 있습니다.
+
+Spring에서 제작한 Interceptor의 편의성이 Filter보다 좀 더 좋을 수는 있지만,
+
+실제로 인증/인가는 Filter에서 처리하는 경우가 많습니다.
+
+거의 Spring 인증/인가에서 De facto가 되어버린 Spring Security도 Filter 레이어를 사용하여 구현되어 있습니다.
+
+수많은 사람들이 사용하는 프레임워크를 만든 우수한 개발자들이 Filter를 적절한 위치라고 판단한 이유가 있을텐데,
+
+우선 Filter의 호출 시점 자체가 Spring에 진입하기도 이전이라는 부분이 있겠습니다.
+
+DispatcherServlet을 통해 path와 매칭되는 Controller의 Handler를 찾아서 실행하게 되는데,
+
+Filter는 DispatcherServlet에 도달하기 이전에 처리됩니다.
+
+어차피 인증에서 막히면 더 이상 처리를 할 수 없을테니 거기서 해당 요청은 종료되어야 합니다.
+
+Filter에서는 인증 로직을 DispathcerServlet 진입 이전에 검사하여, 좀 더 빠르게 의미 없는 요청을 종료함으로 성능 상의 이득을 볼 수 있겠습니다.
+
+다음은 범위의 문제입니다.
+
+Static Resource Serving의 경우, Spring Context를 거치기 전에 Servlet Context에서 처리가 되기 때문에 인증이 제대로 처리되지 않습니다.
+
+이러한 경우는 Filter는 Spring이 아닌, Servlet에서 제공하는 기술이기 때문에 Filter에서 처리해야 합니다.
+
+## 2. Tomcat 구조 및 Filter의 동작 위치
+
+Spring은 Java WAS 스펙에 해당하는 Servlet의 구현체인 Tomcat을 디폴트로 사용하며, Tomcat은 내부적으로 Java NIO를 사용합니다.
+
+Java NIO는 효율적인 리소스 사용을 위해 각 Platform에서 지원하는 Native IO Multiplexor를 사용하는데, 
+
+대부분의 서버는 Linux에서 구동되기 때문에, Linux에서는 IO Multiplexor로 epoll이 사용됩니다.
+
+IO Multiplexor가 없다면 클라이언트로부터 들어오는 요청을 accept할 때까지 블로킹 되는 방식으로 작동하기 때문에 다수의 쓰레드가 비효율적인 대기 과정을 거치기 때문에 IO Multiplexor로 준비된 쓰레드에 대해서만 비동기적으로 epoll이 준비된 소켓에 대한 파일 디스크립터를 알려줘서 완전히 준비가 된 요청에 대해서만 쓰레드풀로부터 쓰레드를 받아서 request를 매핑할 수 있습니다.
+
+그래서 Tomcat의 경우는 클라이언트로부터 들어온 요청에 대해 로드 밸런싱 및 가용 가능한 쓰레드로 매핑을 해주는데,
+
+Connector(Coyote) -> Selector -> epoll(linux native IO Multiplexor) 식으로 작동하는 것으로 보입니다.
+
+epoll 이전에 사용되던 IO Multiplexor가 select여서 Selector라고 이름을 지었는데 성능이 구려서 Linux에서 내부적으로는 epoll이 사용됩니다.
+
+요청과 쓰레드 매핑이 완료되면 Servlet Engine이자 Container인 Catalina로 이관되어 요청을 처리하기 시작하며,
+
+가장 처음 하는 작업으로는 HTTP Request Message가 Serialization 된 바이트열이기 때문에 편의를 위해 객체 형태로 다룰 수 있도록 Deserialization을 거칩니다.
+
+그리고 그 다음번이 바로 Servlet Filter가 작동하는 시점이라고 볼 수 있겠습니다.
+
+Filter에서 요청을 검증한 뒤에는 DispatcherServlet으로 넘어가고 그 뒤로 Spring Interceptor 및 handler가 호출되는 방식입니다.
+
+<img width="1235" alt="image" src="https://github.com/Ludo-SMP/ludo-backend_wiki/assets/121966058/c4f16e84-7884-427d-b58d-23a6f6f798ef">
+
+지금까지 Servlet에 대해 이야기 했던 것들을 대략적으로 표현하면 이런 그림이 됩니다.
+
+여기서 Filter 쪽을 주목하면 5개의 조각으로 이루어져 있는데,
+
+Servlet의 Filter나 여타 서버 프레임워크의 Middleware는 이런식으로 여러 개의 필터가 연결 리스트 구조로 이어져 있으며,
+
+모든 관문을 통과해야 비로소 요청을 처리할 수 있게 됩니다.
+
+만약 하나라도 통과하지 못한다면 요청은 처리되지 못합니다.
+
+## Ludo의 Authentication Filter 처리 과정
+
+Ludo Application에서 인증이 처리되는 `JwtAuthenticationFilter`의 코드는 다음과 같습니다.
+
+`OncePerRequestFilter`를 상속받아서 요청 당 반드시 한 번 호출되는 Spring Filter가 되었습니다.
+
+또한 로그인 시 AccessToken으로 사용하기 위한 Jwt를 발급하여 Client Side에 Cookie를 저장하는 Stateless 방식을 사용하기 때문에,
+
+따로 Session을 사용하지 않고 검증이 가능합니다.
+
+```java
+@Slf4j
+@RequiredArgsConstructor
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+	private final JwtTokenProvider jwtTokenProvider;
+	private final CookieProvider cookieProvider;
+	private final UserDetailsService userDetailsService;
+	private final UserService userService;
+
+	public static final String AUTH_USER_PAYLOAD = "AUTH_USER_PAYLOAD";
+
+	@Override
+	protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
+									final FilterChain filterChain) throws ServletException, IOException {
+		// ...
+	}
+
+// ...
+
+}
+```
+
+`doFilterInternal` 메소드가 Filter 검증 시에 실제로 호출됩니다.
+
+`if (!request.getMethod().equals("OPTIONS"))`로 필터링하여 HTTP Method가 `OPTIONS`인 경우는 검증을 하지 않습니다.
+
+Preflight 요청 시에 검증이 실패해버리는 문제가 발생하기 때문입니다.(이 부분은 뒤에서 작성할 Cors와 연결되므로 지금은 생략하겠습니다.)
+
+만약 일반적인 요청이 들어온 경우, 
+
+```java
+final Optional<String> authToken = cookieProvider.getAuthToken(request);
+// 토큰이 null 이면 예외 response 를 반환한다.
+if (authToken.isEmpty()) {
+	jwtExceptionHandler(response, HttpStatus.UNAUTHORIZED, "Authorization 쿠키가 없습니다.");
+	return;
+}
+```
+
+첫 줄에서 사용자의 Request Cookie에 담겨 있는 json webtoken을 추출합니다.
+
+타입이 `Optional`이므로 없을 수도 있다는 것을 인지할 수 있는데, 로그인이 안 된 경우에 해당 되겠습니다.
+
+그 때는 바로 다음 줄에서 예외를 던져서 요청을 종료합니다.
+
+```java
+try {
+	Claims claims = jwtTokenProvider.verifyAuthTokenOrThrow(authToken.get());
+	final AuthUserPayload payload = AuthUserPayload.from(claims);
+	// 사용자 agent / ip 검증
+	userDetailsService.verifyUserDetails(payload.getId(), request);
+	request.setAttribute(AUTH_USER_PAYLOAD, payload);
+	// 토큰 갱신
+	accessTokenRefresh(payload.getId(), response);
+	// NotFoundException - 만료된 사용자 정보 검증 추가
+	// 만료되거나 잘못된 토큰일 경우 예외 response 를 반환한다.
+				cookieProvider.clearAuthCookie(response);
+				jwtExceptionHandler(response, HttpStatus.UNAUTHORIZED, e.getMessage());
+				return;
+			}
+```
+
+
+
+---
+
+# CORS
+
+---
+
+# JWT
+
+---
+
+# OAuth2
+
+---
+
 # Argument Resolver
 
 사용자가 Client에서 fetch API를 통해 API Server와 소통하는 Endpoint는 Backend에서 Controller에 정의합니다.
@@ -194,3 +350,4 @@ public class WebConfig implements WebMvcConfigurer {
 이제 `WebMvcConfigurer`에 `AuthUserResolver`를 등록해주면 설정이 완료됩니다.
 
 ---
+
