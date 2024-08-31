@@ -59,6 +59,11 @@ Custom Transaction Annotation에 대한 아이디어는 이전에 작성한 PR�
 
 # PR 내용
 
+원본 링크
+
+https://github.com/Ludo-SMP/ludo-backend/pull/116#issuecomment-2143887596
+
+
 고생하셨습니다.😊
 
 현재 프로토타입이라 NotificationService이 의존하는 것들이 너무 많아서 테스트하기 어려운 구조이고,
