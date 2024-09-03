@@ -18,7 +18,7 @@
 <br>
 <img src="https://github.com/user-attachments/assets/86121921-9bfd-43b4-beea-91e68f6922c7" width=700>
 
-<br>
+<br> <br>
 
 ### 🤔 원인
 
@@ -35,7 +35,7 @@ Server Sent Event(이하 SSE)는 **기본 기조가 HTTP 연결 유지 (Persiste
 
 >  Ludo 서비스는 리버스 프록시로서 Nginx를 사용하고 있습니다.
 
-<br>
+<br> <br>
 
 ### 🧐 조치 및 해결
 
@@ -57,7 +57,7 @@ Pending 상태가 해제되면, **쌓여있던 실시간 알림이 한 번에 �
 
 <img src="https://github.com/user-attachments/assets/948eff21-79c9-430d-b3c9-1b6da633d64d" width=700>
 
-<br>
+<br> <br>
 
 ### 🤔 원인
 
@@ -76,7 +76,7 @@ Pending 상태가 해제되면, **쌓여있던 실시간 알림이 한 번에 �
 
 >  SSE의 공식적인 HTTP Content-Type: text/event-stream
 
-<br>
+<br> <br>
 
 ### 🧐 조치 및 해결
 
@@ -99,7 +99,7 @@ Pending 상태가 해제되면, **쌓여있던 실시간 알림이 한 번에 �
 
 <img src="https://github.com/user-attachments/assets/027e7128-e865-4194-97c1-3562e5f58f6a" width=700>
 
-<br>
+<br> <br>
 
 ### 🤔 원인
 
@@ -192,7 +192,7 @@ CLRF	# empty line
 
 <img src="https://github.com/user-attachments/assets/ccd421b7-0985-4419-8794-7f6d88cedfaf" width=700>
 
-<br>
+<br> <br>
 
 ### 🧐 조치 및 해결
 
@@ -212,7 +212,7 @@ proxy_read_timeout 옵션의 대기 시간을 의도한 시간에 맞게 수정�
 
 <img src="https://github.com/user-attachments/assets/7df4bb46-8c73-48b8-9442-812fa1fcc7a9" width=700>
 
-<br>
+<br> <br>
 
 ### 🤔 원인
 
@@ -220,7 +220,7 @@ Ludo 서비스는 JPA를 사용하고 있는데요. **Open Session In View(이�
 
 일반적으로 트랜잭션 시작시점에 DB 커넥션을 점유하고, 트랜잭션 종료시점에 DB 커넥션을 반납합니다. 하지만 OSIV 가 true일 경우, 트랜잭션 종료시점에 DB 커넥션을 반납하지 않고 HTTP 세션이 종료될 때 DB 커넥션을 반납합니다. SSE 는 "연결 유지"입니다. 즉 HTTP 세션이 종료되지 않으므로, DB 커넥션을 계속 점유하고있게 됩니다. 이는 DB 커넥션이 고갈되는 문제를 야기합니다.
 
-<br>
+<br> <br>
 
 ### 🧐 조치 및 해결
 
