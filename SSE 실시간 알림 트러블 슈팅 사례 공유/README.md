@@ -16,8 +16,7 @@
 이 때 클라이언트는 알림 구독 요청에 대한 응답을 받지 못하고, **Pending 상태로 대기 후 Time Out이 발생**
 
 <br>
-
-<img src="https://github.com/user-attachments/assets/c190cc6e-a743-4721-b1e1-041415cf8577" width=700>
+<img src="https://github.com/user-attachments/assets/86121921-9bfd-43b4-beea-91e68f6922c7" width=700>
 
 <br>
 
@@ -28,11 +27,11 @@ Server Sent Event(이하 SSE)는 **기본 기조가 HTTP 연결 유지 (Persiste
 
 <br>
 
-<img src="https://github.com/user-attachments/assets/3df7c6ac-e912-4dd7-8122-e875d7997fc3" width=700>
+<img src="https://github.com/user-attachments/assets/2e6270c2-29eb-4d76-9971-332c4dee0474" width=700>
 
 <br> <br>
 
-<img src="https://github.com/user-attachments/assets/778135d1-3754-4297-97ff-b3f92eea4df5" width=700>
+<img src="https://github.com/user-attachments/assets/490e0a93-6fe0-4621-8f8e-333efae094f2" width=700>
 
 >  Ludo 서비스는 리버스 프록시로서 Nginx를 사용하고 있습니다.
 
@@ -56,7 +55,7 @@ Pending 상태가 해제되면, **쌓여있던 실시간 알림이 한 번에 �
 
 <br>
 
-<img src="https://github.com/user-attachments/assets/6d59d480-6528-400a-a019-5e61bf3c5cf2" width=700>
+<img src="https://github.com/user-attachments/assets/948eff21-79c9-430d-b3c9-1b6da633d64d" width=700>
 
 <br>
 
@@ -68,7 +67,7 @@ Pending 상태가 해제되면, **쌓여있던 실시간 알림이 한 번에 �
 
 <br>
 
-<img src="https://github.com/user-attachments/assets/387285c8-8052-437c-a96b-fa689dfa2053" width=700>
+<img src="https://github.com/user-attachments/assets/e4c78fde-1cb3-4e20-8cd0-4be7c65002aa" width=700>
 
 <br><br>
 
@@ -98,7 +97,7 @@ Pending 상태가 해제되면, **쌓여있던 실시간 알림이 한 번에 �
 
 <br>
 
-<img src="https://github.com/user-attachments/assets/4b2be353-1f69-467c-abb9-87026bc1750b" width=700>
+<img src="https://github.com/user-attachments/assets/027e7128-e865-4194-97c1-3562e5f58f6a" width=700>
 
 <br>
 
@@ -110,7 +109,7 @@ Pending 상태가 해제되면, **쌓여있던 실시간 알림이 한 번에 �
 
 <br>
 
-<img src="https://github.com/user-attachments/assets/83b8ba44-2bf2-4656-962f-3a2c4ede2df4" width=250>
+<img src="https://github.com/user-attachments/assets/3e27f7ac-ad57-419c-8bac-6d55dd026f4c" width=250>
 
 <br>
 
@@ -191,15 +190,13 @@ CLRF	# empty line
 
 <br>
 
-<img src="https://github.com/user-attachments/assets/5c11f36d-5681-4cec-b97f-fe82b93320cb" width=700>
+<img src="https://github.com/user-attachments/assets/ccd421b7-0985-4419-8794-7f6d88cedfaf" width=700>
 
 <br>
 
 ### 🧐 조치 및 해결
 
 proxy_read_timeout 옵션의 대기 시간을 의도한 시간에 맞게 수정하면 됩니다.
-
-<br>
 
 <img src="https://github.com/user-attachments/assets/629e3fc9-6eab-450c-ba89-602051dab406" width=600>
 
@@ -213,7 +210,7 @@ proxy_read_timeout 옵션의 대기 시간을 의도한 시간에 맞게 수정�
 
 <br>
 
-<img src="https://github.com/user-attachments/assets/279c91db-00ff-4ef4-aefd-4f7a931c70b1" width=700>
+<img src="https://github.com/user-attachments/assets/7df4bb46-8c73-48b8-9442-812fa1fcc7a9" width=700>
 
 <br>
 
@@ -229,14 +226,12 @@ Ludo 서비스는 JPA를 사용하고 있는데요. **Open Session In View(이�
 
 OSIV 설정을 해제하면 됩니다.
 
-<br>
-
 <img src="https://github.com/user-attachments/assets/e0622c96-e206-453d-8f06-0988abad5b82" width=400>
 
 <br>
 
 OSIV 설정을 해제할 경우, 트랜잭션 범위를 벗어난 모든 엔티티는 문제 가능성을 내포합니다. 해당 엔티티는 영속화되어있지 않기 때문에, Lazy Loading을 할 경우 no session 오류가 발생합니다. 따라서 서비스 레이어 등에서 엔티티를 반환하는 경우, DTO를 반환하는 등 리팩터링을 고려해야 합니다.
 
-<img src="https://github.com/user-attachments/assets/578ec022-d7d7-4d4f-bfe6-bae89246b268" width=700>
+<img src="https://github.com/user-attachments/assets/578ec022-d7d7-4d4f-bfe6-bae89246b268" width=400>
 
 <br>
