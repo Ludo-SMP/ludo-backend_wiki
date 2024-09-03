@@ -42,8 +42,6 @@ Server Sent Event(이하 SSE)는 **기본 기조가 HTTP 연결 유지 (Persiste
 
 Nginx 설정에서 http 버전을 명시하고, Connection 옵션을 설정해주면 됩니다. 하지만 알림 구동 요청에 대한 네트워크 이슈를 완전히 해결하기 위해선 한 가지 조치를 더 취해주어야 하는데요. 해당 내용은 아래에 이어서 다뤄보겠습니다.
 
-<br>
-
 <img src="https://github.com/user-attachments/assets/da23748d-7f39-46c7-905f-c9e840f1e74e" width=500>
 
 <br> <br>
@@ -167,8 +165,6 @@ CLRF	# empty line
 > The timeout is set only between **two successive read operations.**
 >
 > If the proxied server does not transmit anything within this time, **the connection is closed.**
-
-<br>
 
 주목해야할 부분은 두가지 입니다.
 
