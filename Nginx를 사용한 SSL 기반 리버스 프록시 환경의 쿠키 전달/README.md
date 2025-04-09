@@ -185,24 +185,10 @@ Apache는 .htacess 파일을 제공하기 때문에 이를 활용하거나 Nginx
 
 <br>
 
-### Nginx 설치
-
-(진행중)
-
-<br>
-
 ### Nginx를 도입하여 얻은 이점
 
 ### 1. Reverse Proxy를 통한 SameSite Strict 환경의 쿠키 전달
-
-(진행중)
-
-<br>
-
 ### 2. Web Server와 Web Application Server 의 분리
-
-(진행중)
-
 
 ---
 
